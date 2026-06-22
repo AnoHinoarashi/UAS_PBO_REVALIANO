@@ -1,30 +1,23 @@
 <?php
 // KaryawanKontrak.php
 require_once 'koneksi.php';
-require_once 'Karyawan.php'; // Pastikan file abstract class Karyawan sudah di-require
+require_once 'Karyawan.php';
 
 class KaryawanKontrak extends Karyawan {
-    // Properti Tambahan Spesifik Karyawan Kontrak
     private $durasi_kontrak_bulan;
     private $agensi_penyalur;
 
-    // Constructor Kelas Anak
     public function __construct($id, $nama, $dept, $hariKerja, $gajiDasar, $durasiKontrak, $agensi) {
-        // Mengirimkan properti dasar ke constructor milik Parent Class (Karyawan)
         parent::__construct($id, $nama, $dept, $hariKerja, $gajiDasar);
-        
-        // Inisialisasi properti spesifik kelas anak
         $this->durasi_kontrak_bulan = $durasiKontrak;
         $this->agensi_penyalur       = $agensi;
     }
 
-    // Mengimplementasikan Abstract Method: HitungGajiBersih()
+    // OVERRIDING LOGIKA: Penggajian murni berdasarkan jumlah kehadiran
     public function hitungGajiBersih() {
-        // Gaji bersih dihitung dari akumulasi hari kerja dikali gaji dasar per hari
         return $this->hari_kerja_masuk * $this->gaji_dasar_per_hari;
     }
 
-    // Mengimplementasikan Abstract Method: tampilkanProfilKaryawan()
     public function tampilkanProfilKaryawan() {
         echo "=== PROFIL KARYAWAN KONTRAK ===" . PHP_EOL;
         echo "ID Karyawan     : " . $this->id_karyawan . PHP_EOL;

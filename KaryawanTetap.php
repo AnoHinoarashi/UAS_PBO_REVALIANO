@@ -4,28 +4,21 @@ require_once 'koneksi.php';
 require_once 'Karyawan.php';
 
 class KaryawanTetap extends Karyawan {
-    // Properti Tambahan Spesifik Karyawan Tetap
     private $tunjangan_kesehatan;
     private $opsi_saham_id;
 
-    // Constructor Kelas Anak
     public function __construct($id, $nama, $dept, $hariKerja, $gajiDasar, $tunjangan, $sahamId) {
-        // Mengirimkan properti dasar ke parent constructor
         parent::__construct($id, $nama, $dept, $hariKerja, $gajiDasar);
-        
-        // Inisialisasi properti spesifik kelas anak
         $this->tunjangan_kesehatan = $tunjangan;
         $this->opsi_saham_id       = $sahamId;
     }
 
-    // Mengimplementasikan Abstract Method: HitungGajiBersih()
+    // OVERRIDING LOGIKA: Akumulasi harian ditambah tunjangan kesehatan tetap
     public function hitungGajiBersih() {
-        // Gaji bersih dihitung dari gaji harian ditambah tunjangan kesehatan tetap
-        $gajiDasarTotal = $this->hari_kerja_masuk * $this->gaji_dasar_per_hari;
-        return $gajiDasarTotal + $this->tunjangan_kesehatan;
+        $gajiPokokTotal = $this->hari_kerja_masuk * $this->gaji_dasar_per_hari;
+        return $gajiPokokTotal + $this->tunjangan_kesehatan;
     }
 
-    // Mengimplementasikan Abstract Method: tampilkanProfilKaryawan()
     public function tampilkanProfilKaryawan() {
         echo "=== PROFIL KARYAWAN TETAP ===" . PHP_EOL;
         echo "ID Karyawan     : " . $this->id_karyawan . PHP_EOL;
