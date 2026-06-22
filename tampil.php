@@ -1,16 +1,11 @@
 <?php
 // =======================================================================================
-// FILENAME: tampil.php (VERSI DIAGNOSTIK / LACAK ERROR)
+// FILENAME: tampil.php (REVISI: TAMBAH FITUR FILTERING / SORTING TAMPILAN)
 // =======================================================================================
 
 require_once 'koneksi.php';
 
-// 1. CEK APAKAH VARIABEL KONEKSI $db ADA
-if (!isset($db)) {
-    die("<h3 style='color:red;'>Error: Variabel koneksi \$db tidak ditemukan! Periksa file koneksi.php Anda.</h3>");
-}
-
-// 2. ABSTRACT CLASS UTAMA
+// 1. ABSTRACT CLASS UTAMA
 abstract class Karyawan {
     protected $id_karyawan;
     protected $nama_karyawan;
@@ -29,7 +24,7 @@ abstract class Karyawan {
     abstract public function hitungGajiBersih();
 }
 
-// 3. KELAS TURUNAN
+// 2. KELAS TURUNAN
 class KaryawanTetap extends Karyawan {
     private $tunjangan_kesehatan;
     private $opsi_saham_id;
@@ -68,13 +63,15 @@ class KaryawanMagang extends Karyawan {
     public function hitungGajiBersih() { return ($this->hari_kerja_masuk * $this->gaji_dasar_per_hari) * 0.80; }
 }
 
+// 3. MENANGKAP INPUT FILTER DARI URL (Default: semua)
+$filter = isset($_GET['filter']) ? $_GET['filter'] : 'semua';
+
 // 4. PROSES AMBIL DATA DAN DIAGNOSA
 $kelompokTetap   = [];
 $kelompokKontrak = [];
 $kelompokMagang  = [];
 
 try {
-    // Jalankan query ke database
     $stmt = $db->query("SELECT * FROM tabel_karyawan");
     $semuaData = $stmt->fetchAll();
 
@@ -82,12 +79,9 @@ try {
     if (empty($semuaData)) {
         echo "<div style='background:#fff3cd; color:#856404; padding:15px; margin:20px; border-radius:5px; font-family:sans-serif;'>";
         echo "<h3>⚠️ Pemberitahuan Sistem:</h3>";
-        echo "Koneksi ke database <b>DB_UAS_PBO_TI1C_REVALIANO</b> Berhasil! <br>";
-        echo "Namun, <b>tidak ada data</b> yang ditemukan di dalam tabel <u>tabel_karyawan</u> (0 baris).<br>";
-        echo "Silakan pastikan Anda sudah melakukan <i>Import / Insert data</i> ke dalam tabel tersebut di phpMyAdmin.";
+        echo "Koneksi ke database Berhasil! Namun tidak ada data di tabel_karyawan.";
         echo "</div>";
     }
-    // -------------------------
 
     foreach ($semuaData as $row) {
         if ($row['jenis_karyawan'] === 'tetap') {
@@ -111,19 +105,49 @@ try {
         }
     }
 } catch (PDOException $e) {
-    die("<h3 style='color:red;'>SQL Error: " . $e->getMessage() . "</h3><p>Periksa apakah nama tabel Anda benar-benar bernama <u>tabel_karyawan</u>.</p>");
+    die("<h3 style='color:red;'>SQL Error: " . $e->getMessage() . "</h3>");
 }
+
+// Menghitung total data yang berhasil dimuat sesuai data asli database
+$totalDataDb = count($kelompokTetap) + count($kelompokKontrak) + count($kelompokMagang);
 ?>
 
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Daftar slip gaji</title>
+    <title>Daftar Slip Gaji</title>
     <style>
         body { background-color: #111; color: #fff; font-family: sans-serif; padding: 20px; }
         .container { max-width: 1200px; margin: 0 auto; }
         header { text-align: center; padding: 20px; background: #FF6600; border: 3px solid #FFCC00; border-radius: 10px; margin-bottom: 20px;}
+        
+        /* Style Komponen Filter / Sorting Tab */
+        .filter-wrapper {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 25px;
+        }
+        .btn-filter {
+            padding: 10px 20px;
+            font-weight: bold;
+            text-decoration: none;
+            border-radius: 5px;
+            text-transform: uppercase;
+            font-size: 0.9rem;
+            transition: all 0.2s ease-in-out;
+            border: 2px solid transparent;
+        }
+        .btn-semua { background-color: #333; color: #fff; border-color: #555; }
+        .btn-tetap { background-color: #FFCC00; color: #000; }
+        .btn-kontrak { background-color: #FF6600; color: #fff; }
+        .btn-magang { background-color: #a200ff; color: #fff; }
+        
+        /* Efek Hover & Aktif */
+        .btn-filter:hover { transform: scale(1.05); box-shadow: 0 0 10px rgba(255,255,255,0.2); }
+        .active-btn { border: 2px solid #fff !important; box-shadow: 0 0 15px rgba(255,255,255,0.4); }
+
         .section { border: 2px solid #003399; padding: 20px; border-radius: 10px; margin-bottom: 20px; background: #1a1a1a; }
         .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; margin-top: 15px;}
         .card { background: #222; border-left: 5px solid #FFCC00; padding: 15px; border-radius: 4px; }
@@ -135,10 +159,17 @@ try {
 <div class="container">
     <header>
         <h2>DAFTAR SLIP GAJI</h2>
-        <p>Total Data Terload: <?= count($kelompokTetap) + count($kelompokKontrak) + count($kelompokMagang); ?> Karyawan</p>
+        <p>Total Data Terload: <?= $totalDataDb; ?> Karyawan</p>
     </header>
 
-    <?php if (!empty($kelompokTetap)): ?>
+    <div class="filter-wrapper">
+        <a href="tampil.php?filter=semua" class="btn-filter btn-semua <?= $filter === 'semua' ? 'active-btn' : ''; ?>">✨ Semua</a>
+        <a href="tampil.php?filter=tetap" class="btn-filter btn-tetap <?= $filter === 'tetap' ? 'active-btn' : ''; ?>">👑 Tetap</a>
+        <a href="tampil.php?filter=kontrak" class="btn-filter btn-kontrak <?= $filter === 'kontrak' ? 'active-btn' : ''; ?>">🔥 Kontrak</a>
+        <a href="tampil.php?filter=magang" class="btn-filter btn-magang <?= $filter === 'magang' ? 'active-btn' : ''; ?>">🔮 Magang</a>
+    </div>
+
+    <?php if (!empty($kelompokTetap) && ($filter === 'semua' || $filter === 'tetap')): ?>
     <div class="section">
         <h3 style="color:#FFCC00;">KARYAWAN TETAP</h3>
         <div class="grid">
@@ -153,7 +184,7 @@ try {
     </div>
     <?php endif; ?>
 
-    <?php if (!empty($kelompokKontrak)): ?>
+    <?php if (!empty($kelompokKontrak) && ($filter === 'semua' || $filter === 'kontrak')): ?>
     <div class="section" style="border-color:#FF6600;">
         <h3 style="color:#FF6600;">KARYAWAN KONTRAK</h3>
         <div class="grid">
@@ -168,7 +199,7 @@ try {
     </div>
     <?php endif; ?>
 
-    <?php if (!empty($kelompokMagang)): ?>
+    <?php if (!empty($kelompokMagang) && ($filter === 'semua' || $filter === 'magang')): ?>
     <div class="section" style="border-color:#a200ff;">
         <h3 style="color:#cc66ff;">KARYAWAN MAGANG</h3>
         <div class="grid">
