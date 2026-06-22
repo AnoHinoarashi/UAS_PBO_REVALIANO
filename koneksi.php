@@ -4,7 +4,7 @@
 // Deskripsi: File koneksi murni database dengan atribut-atribut konfigurasinya
 // =======================================================================================
 
-class Koneksi Database {
+class KoneksiDatabase {
     // Atribut / Properti Konfigurasi Database
     private $host     = "localhost";
     private $username = "root"; // Sesuaikan dengan username database Anda
