@@ -1,72 +1,13 @@
 <?php
-// =======================================================================================
-// FILENAME: tampil.php (REVISI: TAMBAH FITUR FILTERING / SORTING TAMPILAN)
-// =======================================================================================
-
+// Memanggil seluruh dependensi file secara modular
 require_once 'koneksi.php';
+require_once 'KaryawanTetap.php';
+require_once 'KaryawanKontrak.php';
+require_once 'KaryawanMagang.php';
 
-// 1. ABSTRACT CLASS UTAMA
-abstract class Karyawan {
-    protected $id_karyawan;
-    protected $nama_karyawan;
-    protected $departemen;
-    protected $hari_kerja_masuk;
-    protected $gaji_dasar_per_hari;
-
-    public function __construct($id, $nama, $dept, $hariKerja, $gajiDasar) {
-        $this->id_karyawan         = $id;
-        $this->nama_karyawan       = $nama;
-        $this->departemen          = $dept;
-        $this->hari_kerja_masuk    = $hariKerja;
-        $this->gaji_dasar_per_hari = $gajiDasar;
-    }
-
-    abstract public function hitungGajiBersih();
-}
-
-// 2. KELAS TURUNAN
-class KaryawanTetap extends Karyawan {
-    private $tunjangan_kesehatan;
-    private $opsi_saham_id;
-
-    public function __construct($id, $nama, $dept, $hariKerja, $gajiDasar, $tunjangan, $sahamId) {
-        parent::__construct($id, $nama, $dept, $hariKerja, $gajiDasar);
-        $this->tunjangan_kesehatan = $tunjangan;
-        $this->opsi_saham_id       = $sahamId;
-    }
-    public function hitungGajiBersih() {
-        return ($this->hari_kerja_masuk * $this->gaji_dasar_per_hari) + $this->tunjangan_kesehatan;
-    }
-}
-
-class KaryawanKontrak extends Karyawan {
-    private $durasi_kontrak_bulan;
-    private $agensi_penyalur;
-
-    public function __construct($id, $nama, $dept, $hariKerja, $gajiDasar, $durasi, $agensi) {
-        parent::__construct($id, $nama, $dept, $hariKerja, $gajiDasar);
-        $this->durasi_kontrak_bulan = $durasi;
-        $this->agensi_penyalur       = $agensi;
-    }
-    public function hitungGajiBersih() { return $this->hari_kerja_masuk * $this->gaji_dasar_per_hari; }
-}
-
-class KaryawanMagang extends Karyawan {
-    private $uang_saku_bulanan;
-    private $sertifikat_kampus_merdeka;
-
-    public function __construct($id, $nama, $dept, $hariKerja, $gajiDasar, $uangSaku, $sertifikat) {
-        parent::__construct($id, $nama, $dept, $hariKerja, $gajiDasar);
-        $this->uang_saku_bulanan         = $uangSaku;
-        $this->sertifikat_kampus_merdeka = $sertifikat;
-    }
-    public function hitungGajiBersih() { return ($this->hari_kerja_masuk * $this->gaji_dasar_per_hari) * 0.80; }
-}
-
-// 3. MENANGKAP INPUT FILTER DARI URL (Default: semua)
+// Menangkap input filter sortir dari URL
 $filter = isset($_GET['filter']) ? $_GET['filter'] : 'semua';
 
-// 4. PROSES AMBIL DATA DAN DIAGNOSA
 $kelompokTetap   = [];
 $kelompokKontrak = [];
 $kelompokMagang  = [];
@@ -75,15 +16,8 @@ try {
     $stmt = $db->query("SELECT * FROM tabel_karyawan");
     $semuaData = $stmt->fetchAll();
 
-    // --- DIAGNOSTIK SCREEN ---
-    if (empty($semuaData)) {
-        echo "<div style='background:#fff3cd; color:#856404; padding:15px; margin:20px; border-radius:5px; font-family:sans-serif;'>";
-        echo "<h3>⚠️ Pemberitahuan Sistem:</h3>";
-        echo "Koneksi ke database Berhasil! Namun tidak ada data di tabel_karyawan.";
-        echo "</div>";
-    }
-
     foreach ($semuaData as $row) {
+        // Proses pembentukan objek secara polimorfisme dari file subclass masing-masing
         if ($row['jenis_karyawan'] === 'tetap') {
             $kelompokTetap[] = new KaryawanTetap(
                 $row['id_karyawan'], $row['nama_karyawan'], $row['departemen'], 
@@ -108,7 +42,6 @@ try {
     die("<h3 style='color:red;'>SQL Error: " . $e->getMessage() . "</h3>");
 }
 
-// Menghitung total data yang berhasil dimuat sesuai data asli database
 $totalDataDb = count($kelompokTetap) + count($kelompokKontrak) + count($kelompokMagang);
 ?>
 
@@ -121,33 +54,14 @@ $totalDataDb = count($kelompokTetap) + count($kelompokKontrak) + count($kelompok
         body { background-color: #111; color: #fff; font-family: sans-serif; padding: 20px; }
         .container { max-width: 1200px; margin: 0 auto; }
         header { text-align: center; padding: 20px; background: #FF6600; border: 3px solid #FFCC00; border-radius: 10px; margin-bottom: 20px;}
-        
-        /* Style Komponen Filter / Sorting Tab */
-        .filter-wrapper {
-            display: flex;
-            justify-content: center;
-            gap: 12px;
-            margin-bottom: 25px;
-        }
-        .btn-filter {
-            padding: 10px 20px;
-            font-weight: bold;
-            text-decoration: none;
-            border-radius: 5px;
-            text-transform: uppercase;
-            font-size: 0.9rem;
-            transition: all 0.2s ease-in-out;
-            border: 2px solid transparent;
-        }
+        .filter-wrapper { display: flex; justify-content: center; gap: 12px; margin-bottom: 25px; }
+        .btn-filter { padding: 10px 20px; font-weight: bold; text-decoration: none; border-radius: 5px; text-transform: uppercase; font-size: 0.9rem; transition: all 0.2s ease; border: 2px solid transparent; }
         .btn-semua { background-color: #333; color: #fff; border-color: #555; }
         .btn-tetap { background-color: #FFCC00; color: #000; }
         .btn-kontrak { background-color: #FF6600; color: #fff; }
         .btn-magang { background-color: #a200ff; color: #fff; }
-        
-        /* Efek Hover & Aktif */
-        .btn-filter:hover { transform: scale(1.05); box-shadow: 0 0 10px rgba(255,255,255,0.2); }
+        .btn-filter:hover { transform: scale(1.05); }
         .active-btn { border: 2px solid #fff !important; box-shadow: 0 0 15px rgba(255,255,255,0.4); }
-
         .section { border: 2px solid #003399; padding: 20px; border-radius: 10px; margin-bottom: 20px; background: #1a1a1a; }
         .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; margin-top: 15px;}
         .card { background: #222; border-left: 5px solid #FFCC00; padding: 15px; border-radius: 4px; }
@@ -177,7 +91,7 @@ $totalDataDb = count($kelompokTetap) + count($kelompokKontrak) + count($kelompok
                 <div class="card">
                     <h3><?= (fn() => $this->nama_karyawan)->call($kt); ?></h3>
                     <p>ID: <?= (fn() => $this->id_karyawan)->call($kt); ?> | Dept: <?= (fn() => $this->departemen)->call($kt); ?></p>
-                    <p class="amount">Rp <?= number_format($kt->hitungGajiBersih(), 0, ',', '.'); ?></p>
+                    <p class="amount">Rp <?= number_format($kt->ambilGajiBersih(), 0, ',', '.'); ?></p>
                 </div>
             <?php endforeach; ?>
         </div>
@@ -192,7 +106,7 @@ $totalDataDb = count($kelompokTetap) + count($kelompokKontrak) + count($kelompok
                 <div class="card" style="border-left-color:#FF6600;">
                     <h3><?= (fn() => $this->nama_karyawan)->call($kk); ?></h3>
                     <p>ID: <?= (fn() => $this->id_karyawan)->call($kk); ?> | Dept: <?= (fn() => $this->departemen)->call($kk); ?></p>
-                    <p class="amount">Rp <?= number_format($kk->hitungGajiBersih(), 0, ',', '.'); ?></p>
+                    <p class="amount">Rp <?= number_format($kk->ambilGajiBersih(), 0, ',', '.'); ?></p>
                 </div>
             <?php endforeach; ?>
         </div>
@@ -207,7 +121,7 @@ $totalDataDb = count($kelompokTetap) + count($kelompokKontrak) + count($kelompok
                 <div class="card" style="border-left-color:#a200ff;">
                     <h3><?= (fn() => $this->nama_karyawan)->call($km); ?></h3>
                     <p>ID: <?= (fn() => $this->id_karyawan)->call($km); ?> | Dept: <?= (fn() => $this->departemen)->call($km); ?></p>
-                    <p class="amount">Rp <?= number_format($km->hitungGajiBersih(), 0, ',', '.'); ?></p>
+                    <p class="amount">Rp <?= number_format($km->ambilGajiBersih(), 0, ',', '.'); ?></p>
                 </div>
             <?php endforeach; ?>
         </div>
